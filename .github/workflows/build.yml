@@ -4,13 +4,13 @@ on:
   push:
     branches: [ main ]
     tags:
-      - 'v*'           # triggers on tags like v1.0, v1.2 etc
+      - 'v*'
   pull_request:
     branches: [ main ]
 
 jobs:
 
-  # ── JOB 1: Lint check (runs on every push) ──────────────────────────────
+  # ── JOB 1: Lint ──────────────────────────────────────────────────────────
   lint:
     name: Lint Check
     runs-on: ubuntu-latest
@@ -28,10 +28,10 @@ jobs:
 
       - name: Run lint
         run: |
-          flake8 main.py --max-line-length=120 --ignore=E501,W503 || true
+          flake8 karavali.py --max-line-length=120 --ignore=E501,W503 || true
 
 
-  # ── JOB 2: Build Windows .exe ───────────────────────────────────────────
+  # ── JOB 2: Build Windows EXE ─────────────────────────────────────────────
   build-windows:
     name: Build Windows EXE
     runs-on: windows-latest
@@ -48,22 +48,28 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pyinstaller
+          pip install matplotlib numpy pyinstaller
+
+      - name: Verify files exist
+        shell: cmd
+        run: |
+          dir
+          if exist karavali.py (echo "karavali.py FOUND") else (echo "karavali.py NOT FOUND" && exit 1)
+          if exist icon.png (echo "icon.png FOUND") else (echo "icon.png NOT FOUND" && exit 1)
 
       - name: Build EXE with PyInstaller
+        shell: cmd
         run: |
-          pyinstaller --onefile --windowed --name "KaravaliApp" --icon=icon.png main.py
-        # If you don't have icon.png, remove --icon=icon.png
+          pyinstaller --onefile --windowed --name "KaravaliApp" --icon=icon.png karavali.py
 
-      - name: Upload EXE as artifact
+      - name: Upload EXE
         uses: actions/upload-artifact@v4
         with:
           name: KaravaliApp-Windows
           path: dist/KaravaliApp.exe
 
 
-  # ── JOB 3: Build Linux binary ───────────────────────────────────────────
+  # ── JOB 3: Build Linux Binary ─────────────────────────────────────────────
   build-linux:
     name: Build Linux Binary
     runs-on: ubuntu-latest
@@ -81,25 +87,30 @@ jobs:
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-tk
+          sudo apt-get install -y python3-tk xvfb
 
       - name: Install Python dependencies
         run: |
-          pip install -r requirements.txt
-            pip install pyinstaller
+          pip install matplotlib numpy pyinstaller
+
+      - name: Verify files exist
+        run: |
+          ls -la
+          test -f karavali.py && echo "karavali.py FOUND" || (echo "karavali.py NOT FOUND" && exit 1)
+          test -f icon.png && echo "icon.png FOUND" || (echo "icon.png NOT FOUND" && exit 1)
 
       - name: Build binary with PyInstaller
         run: |
-          pyinstaller --onefile --name "KaravaliApp" main.py
+          pyinstaller --onefile --name "KaravaliApp" --icon=icon.png karavali.py
 
-      - name: Upload Linux binary as artifact
+      - name: Upload Linux binary
         uses: actions/upload-artifact@v4
         with:
           name: KaravaliApp-Linux
           path: dist/KaravaliApp
 
 
-  # ── JOB 4: Auto-release when you push a version tag ─────────────────────
+  # ── JOB 4: Release (only on version tags) ────────────────────────────────
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
@@ -111,24 +122,27 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: KaravaliApp-Windows
+          path: windows-build
 
       - name: Download Linux artifact
         uses: actions/download-artifact@v4
         with:
           name: KaravaliApp-Linux
+          path: linux-build
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            KaravaliApp.exe
-            KaravaliApp
+            windows-build/KaravaliApp.exe
+            linux-build/KaravaliApp
           body: |
             ## Karavali Financial Management System
-            ### What's in this release
-            - Windows executable (.exe)
-            - Linux binary
-            
+
+            ### Downloads
+            - **Windows** → `KaravaliApp.exe`
+            - **Linux** → `KaravaliApp`
+
             ### How to use
             Download the file for your OS and run it directly. No Python needed.
         env:
