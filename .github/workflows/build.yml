@@ -36,6 +36,46 @@ jobs:
     name: Run Tests & Upload Coverage
     runs-on: ubuntu-latest
     needs: lint
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest pytest-cov coverage numpy
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/test_basic.py -v \
+            --cov=KARAVALI \
+            --cov-report=xml:coverage.xml \
+            --cov-report=term-missing \
+            --tb=short
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          files: coverage.xml
+          flags: unittests
+          name: karavali-coverage
+          fail_ci_if_error: false
+          verbose: true
+          use_oidc: true
+
+  # ── JOB 3: Build Windows EXE ─────────────────────────────────────────────
+  build-windows:
+    name: Build Windows EXE
+    runs-on: windows-latest
+    needs: test
 
     steps:
       - name: Checkout code
@@ -48,22 +88,25 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-cov
+          pip install matplotlib numpy pyinstaller
 
-      - name: Run tests with coverage
+      - name: Verify files exist
+        shell: cmd
         run: |
-          pytest -v \
-            --cov=KARAVALI \
-            --cov-report=xml:coverage.xml
+          dir
+          if exist KARAVALI.py (echo "KARAVALI.py FOUND") else (echo "KARAVALI.py NOT FOUND" && exit 1)
+          if exist icon.png (echo "icon.png FOUND") else (echo "icon.png NOT FOUND" && exit 1)
 
-      - name: Upload coverage to Codecov
-        uses: codecov/codecov-action@v4
+      - name: Build EXE with PyInstaller
+        shell: cmd
+        run: |
+          pyinstaller --onefile --windowed --name "KaravaliApp" --icon=icon.png KARAVALI.py
+
+      - name: Upload EXE
+        uses: actions/upload-artifact@v4
         with:
-          files: coverage.xml
-          flags: unittests
-          name: karavali-coverage
-          fail_ci_if_error: false
-          verbose: true
+          name: KaravaliApp-Windows
+          path: dist/KaravaliApp.exe
 
 
   # ── JOB 4: Build Linux Binary ─────────────────────────────────────────────
@@ -107,44 +150,7 @@ jobs:
           path: dist/KaravaliApp
 
 
-  # ── JOB 5: Build Windows Binary ───────────────────────────────────────────
-  build-windows:
-    name: Build Windows Binary
-    runs-on: windows-latest
-    needs: test
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Install Python dependencies
-        run: |
-          pip install matplotlib numpy pyinstaller
-
-      - name: Verify files exist
-        shell: pwsh
-        run: |
-          Get-ChildItem -Force
-          if (!(Test-Path "KARAVALI.py")) { Write-Error "KARAVALI.py NOT FOUND"; exit 1 } else { Write-Output "KARAVALI.py FOUND" }
-          if (!(Test-Path "icon.png")) { Write-Error "icon.png NOT FOUND"; exit 1 } else { Write-Output "icon.png FOUND" }
-
-      - name: Build binary with PyInstaller
-        run: |
-          pyinstaller --onefile --name "KaravaliApp" --icon=icon.png KARAVALI.py
-
-      - name: Upload Windows binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: KaravaliApp-Windows
-          path: dist/KaravaliApp.exe
-
-
-  # ── JOB 6: Release (only on version tags) ────────────────────────────────
+  # ── JOB 5: Release (only on version tags) ────────────────────────────────
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest

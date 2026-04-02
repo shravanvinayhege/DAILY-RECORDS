@@ -1,15 +1,21 @@
-# tests/test_basic.py
+"""
+Smoke and unit tests for KARAVALI.
 
-import sys
+Mocks tkinter and matplotlib before importing the app so CI does not need a display.
+Do not stub numpy: pytest.approx() requires a real numpy.bool_ type in sys.modules.
+"""
+
 import os
 import sqlite3
-import pytest
+import sys
 import unittest.mock as mock
 
-# ── Fix import path ───────────────────────
+import pytest
+
+# Project root on path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-# ── Mock GUI libs BEFORE import ───────────
+# Mock GUI / plotting before KARAVALI import
 sys.modules["tkinter"] = mock.MagicMock()
 sys.modules["tkinter.ttk"] = mock.MagicMock()
 sys.modules["tkinter.messagebox"] = mock.MagicMock()
@@ -21,42 +27,29 @@ sys.modules["matplotlib.backends"] = mock.MagicMock()
 sys.modules["matplotlib.backends.backend_tkagg"] = mock.MagicMock()
 sys.modules["matplotlib.ticker"] = mock.MagicMock()
 
-# ✅ Import AFTER mocking
-import KARAVALI
+import KARAVALI  # noqa: E402  (after mocks)
 
-
-# ═══════════════════════════════════════════
-# BASIC COVERAGE TEST (VERY IMPORTANT)
-# ═══════════════════════════════════════════
 
 def test_import():
     assert KARAVALI is not None
 
 
-# ═══════════════════════════════════════════
-# SIMPLE LOGIC TEST
-# ═══════════════════════════════════════════
-
 def test_basic_math():
     assert 2 + 2 == 4
 
-
-# ═══════════════════════════════════════════
-# DATABASE TEST
-# ═══════════════════════════════════════════
 
 @pytest.fixture
 def db():
     conn = sqlite3.connect(":memory:")
     cur = conn.cursor()
-
-    cur.execute("""
+    cur.execute(
+        """
         CREATE TABLE test (
             id INTEGER PRIMARY KEY,
             name TEXT
         )
-    """)
-
+        """
+    )
     conn.commit()
     yield conn, cur
     conn.close()
@@ -66,21 +59,15 @@ def test_db_insert(db):
     conn, cur = db
     cur.execute("INSERT INTO test (name) VALUES ('Shravan')")
     conn.commit()
-
     cur.execute("SELECT name FROM test")
     result = cur.fetchone()
-
     assert result[0] == "Shravan"
 
-
-# ═══════════════════════════════════════════
-# FLOAT FUNCTION TEST
-# ═══════════════════════════════════════════
 
 def get_float(val):
     try:
         return float(val)
-    except:
+    except ValueError:
         return 0.0
 
 
@@ -91,10 +78,6 @@ def test_get_float_valid():
 def test_get_float_invalid():
     assert get_float("abc") == 0.0
 
-
-# ═══════════════════════════════════════════
-# SIMPLE BUSINESS LOGIC TEST
-# ═══════════════════════════════════════════
 
 def calculate(day_sales, expenses):
     return day_sales - expenses
