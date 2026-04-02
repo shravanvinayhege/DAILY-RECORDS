@@ -28,7 +28,7 @@ jobs:
 
       - name: Run lint
         run: |
-          flake8 karavali.py --max-line-length=120 --ignore=E501,W503 || true
+          flake8 KARAVALI.py --max-line-length=120 --ignore=E501,W503 || true
 
 
   # ── JOB 2: Build Windows EXE ─────────────────────────────────────────────
@@ -54,13 +54,13 @@ jobs:
         shell: cmd
         run: |
           dir
-          if exist karavali.py (echo "karavali.py FOUND") else (echo "karavali.py NOT FOUND" && exit 1)
+          if exist KARAVALI.py (echo "KARAVALI.py FOUND") else (echo "KARAVALI.py NOT FOUND" && exit 1)
           if exist icon.png (echo "icon.png FOUND") else (echo "icon.png NOT FOUND" && exit 1)
 
       - name: Build EXE with PyInstaller
         shell: cmd
         run: |
-          pyinstaller --onefile --windowed --name "KaravaliApp" --icon=icon.png karavali.py
+          pyinstaller --onefile --windowed --name "KaravaliApp" --icon=icon.png KARAVALI.py
 
       - name: Upload EXE
         uses: actions/upload-artifact@v4
@@ -96,12 +96,12 @@ jobs:
       - name: Verify files exist
         run: |
           ls -la
-          test -f karavali.py && echo "karavali.py FOUND" || (echo "karavali.py NOT FOUND" && exit 1)
+          test -f KARAVALI.py && echo "KARAVALI.py FOUND" || (echo "KARAVALI.py NOT FOUND" && exit 1)
           test -f icon.png && echo "icon.png FOUND" || (echo "icon.png NOT FOUND" && exit 1)
 
       - name: Build binary with PyInstaller
         run: |
-          pyinstaller --onefile --name "KaravaliApp" --icon=icon.png karavali.py
+          pyinstaller --onefile --name "KaravaliApp" --icon=icon.png KARAVALI.py
 
       - name: Upload Linux binary
         uses: actions/upload-artifact@v4
