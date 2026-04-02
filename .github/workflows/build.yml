@@ -49,6 +49,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
+          pip install pyinstaller
 
       - name: Build EXE with PyInstaller
         run: |
@@ -85,6 +86,7 @@ jobs:
       - name: Install Python dependencies
         run: |
           pip install -r requirements.txt
+            pip install pyinstaller
 
       - name: Build binary with PyInstaller
         run: |
