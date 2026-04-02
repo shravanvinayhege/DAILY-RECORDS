@@ -107,7 +107,44 @@ jobs:
           path: dist/KaravaliApp
 
 
-  # ── JOB 5: Release (only on version tags) ────────────────────────────────
+  # ── JOB 5: Build Windows Binary ───────────────────────────────────────────
+  build-windows:
+    name: Build Windows Binary
+    runs-on: windows-latest
+    needs: test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python dependencies
+        run: |
+          pip install matplotlib numpy pyinstaller
+
+      - name: Verify files exist
+        shell: pwsh
+        run: |
+          Get-ChildItem -Force
+          if (!(Test-Path "KARAVALI.py")) { Write-Error "KARAVALI.py NOT FOUND"; exit 1 } else { Write-Output "KARAVALI.py FOUND" }
+          if (!(Test-Path "icon.png")) { Write-Error "icon.png NOT FOUND"; exit 1 } else { Write-Output "icon.png FOUND" }
+
+      - name: Build binary with PyInstaller
+        run: |
+          pyinstaller --onefile --name "KaravaliApp" --icon=icon.png KARAVALI.py
+
+      - name: Upload Windows binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: KaravaliApp-Windows
+          path: dist/KaravaliApp.exe
+
+
+  # ── JOB 6: Release (only on version tags) ────────────────────────────────
   release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
