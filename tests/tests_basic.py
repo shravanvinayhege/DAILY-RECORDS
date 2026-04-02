@@ -29,7 +29,7 @@ sys.modules["matplotlib.dates"] = mock.MagicMock()
 sys.modules["matplotlib.backends"] = mock.MagicMock()
 sys.modules["matplotlib.backends.backend_tkagg"] = mock.MagicMock()
 sys.modules["matplotlib.ticker"] = mock.MagicMock()
-sys.modules["numpy"] = mock.MagicMock()
+# Don't stub numpy with MagicMock: pytest.approx() uses isinstance(..., np.bool_).
 
 
 # ══════════════════════════════════════════════════════════════════════════════
